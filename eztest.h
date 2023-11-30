@@ -25,12 +25,12 @@
 ;       #include "unit_under_test.hpp"
 ;
 ;       TEST_BEGIN(sum_test)
-;           int result = unit_under_test_sum(2, 2);
+;           uintptr_t result = unit_under_test_sum(2, 2);
 ;           EXPECT(result, 4);
 ;       TEST_END
 ;
 ;       TEST_BEGIN(mul_test)
-;           int result = unit_under_test_mul(10, 0);
+;           uintptr_t result = unit_under_test_mul(10, 0);
 ;           EXPECT_ZERO(result);
 ;       TEST_END
 ;
@@ -59,8 +59,8 @@
 // TODO: Expectation macros for strings(data buffers).
 // TODO: Implement support for multiple RUN_TESTS(...) calls.
 
-#ifndef EZTEST_H
-#define EZTEST_H
+#ifndef EZTEST_H_
+#define EZTEST_H_
 
 #ifndef EZTEST
 #error This file should not be included in non-test builds. Define the build as\
@@ -75,69 +75,72 @@
 #endif
 
 #include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
-#define PRINTF PRINTF_A
-#define OUTPUT WRITE_IN_CONSOLE
+#define PRINTF_ PRINTF_A_
+#define OUTPUT  WRITE_IN_CONSOLE_
 
-#define PRINTF_A printf
+#define PRINTF_A_ printf
 
-#define WRITE_IN_CONSOLE(format, ...)                                          \
+#define WRITE_IN_CONSOLE_(format, ...)                                         \
     do                                                                         \
     {                                                                          \
-        PRINTF(format, ##__VA_ARGS__);                                         \
+        PRINTF_(format, ##__VA_ARGS__);                                        \
     } while (0)
 
-#define TEST_PASS 0
-#define TEST_FAIL 1
+#define TEST_PASS_ 0
+#define TEST_FAIL_ 1
 
-#define TOTAL_EXPECTEDS  total_expecteds
-#define FAILED_EXPECTEDS failed_expecteds
-#define TEST_RESULT      result
+#define TOTAL_EXPECTEDS_  total_expecteds
+#define FAILED_EXPECTEDS_ failed_expecteds
+#define TEST_RESULT_      result
 
 typedef struct TestCaseInfo
 {
-    int TOTAL_EXPECTEDS;
-    int FAILED_EXPECTEDS;
-    int TEST_RESULT;
+    uintptr_t TOTAL_EXPECTEDS_;
+    uintptr_t FAILED_EXPECTEDS_;
+    uintptr_t TEST_RESULT_;
 } TestCaseInfo;
 
 #define TEST_BEGIN(TEST_NAME)                                                  \
     static void TEST_NAME(TestCaseInfo* ti)                                    \
     {                                                                          \
-        int TOTAL_EXPECTEDS = 0;                                               \
-        int FAILED_EXPECTEDS = 0;                                              \
-        int TEST_RESULT = 0;                                                   \
+        uintptr_t TOTAL_EXPECTEDS_ = 0;                                        \
+        uintptr_t FAILED_EXPECTEDS_ = 0;                                       \
+        uintptr_t TEST_RESULT_ = 0;                                            \
         void* eztest_value = 0;                                                \
         void* eztest_expected = 0;                                             \
         OUTPUT("Executing test \'%s\'...\n", #TEST_NAME);
 
-#define TEST_FOOTER                                                            \
+#define TEST_FOOTER_                                                           \
     do                                                                         \
     {                                                                          \
-        ti->TOTAL_EXPECTEDS = TOTAL_EXPECTEDS;                                 \
-        ti->FAILED_EXPECTEDS = FAILED_EXPECTEDS;                               \
-        ti->TEST_RESULT = TEST_RESULT;                                         \
+        ti->TOTAL_EXPECTEDS_ = TOTAL_EXPECTEDS_;                               \
+        ti->FAILED_EXPECTEDS_ = FAILED_EXPECTEDS_;                             \
+        ti->TEST_RESULT_ = TEST_RESULT_;                                       \
     } while (0);
 
 #define TEST_END                                                               \
-    TEST_FOOTER;                                                               \
+    TEST_FOOTER_;                                                              \
     return;                                                                    \
     }
 
 #define EXPECT(value, expected)                                                \
     do                                                                         \
     {                                                                          \
-        ++TOTAL_EXPECTEDS;                                                     \
-        eztest_value = (void*)value;                                           \
-        eztest_expected = (void*)expected;                                     \
+        ++TOTAL_EXPECTEDS_;                                                    \
+        eztest_value = (void*)(value);                                         \
+        eztest_expected = (void*)(expected);                                   \
         if (eztest_value != eztest_expected)                                   \
         {                                                                      \
-            OUTPUT("Failed expecation. Line: %d. actual: %d(0x%x) "            \
-                   "expected: %d(0x%x)\n",                                     \
-                   __LINE__, (int)eztest_value, (int)eztest_value,             \
-                   (int)eztest_expected, (int)eztest_expected);                \
-            ++FAILED_EXPECTEDS;                                                \
-            TEST_RESULT = TEST_FAIL;                                           \
+            OUTPUT("Failed expecation. Line: %d. actual: %" PRIuPTR            \
+                   "(0x%" PRIxPTR ") expected: %" PRIuPTR "(0x%" PRIxPTR       \
+                   ")\n",                                                      \
+                   __LINE__, (uintptr_t)eztest_value, (uintptr_t)eztest_value, \
+                   (uintptr_t)eztest_expected, (uintptr_t)eztest_expected);    \
+            ++FAILED_EXPECTEDS_;                                               \
+            TEST_RESULT_ = TEST_FAIL_;                                         \
         }                                                                      \
     } while (0)
 
@@ -146,41 +149,40 @@ typedef struct TestCaseInfo
 #define EXPECT_NOT_ZERO(value) EXPECT((value == 0), 0)
 
 #define FORCE_FAIL_TEST                                                        \
-    TEST_RESULT = TEST_FAIL;                                                   \
-    TEST_FOOTER;                                                               \
+    TEST_RESULT_ = TEST_FAIL_;                                                 \
+    TEST_FOOTER_;                                                              \
     return;
 
 #define EXPECT_BUF(value, expected, size)                                      \
     do                                                                         \
     {                                                                          \
-        ++TOTAL_EXPECTEDS;                                                     \
-        for (int i = 0; i < size; i++)                                         \
+        ++TOTAL_EXPECTEDS_;                                                    \
+        for (size_t i = 0; i < size; i++)                                      \
         {                                                                      \
             if (((char*)value)[i] != ((char*)expected)[i])                     \
             {                                                                  \
-                ++FAILED_EXPECTEDS;                                            \
-                TEST_RESULT = TEST_FAIL;                                       \
+                ++FAILED_EXPECTEDS_;                                           \
+                TEST_RESULT_ = TEST_FAIL_;                                     \
                 break;                                                         \
             }                                                                  \
         }                                                                      \
     } while (0)
 
-#define TESTS_SEPARATOR                                                        \
+#define TESTS_SEPARATOR_                                                       \
     "------------------------------------------------------------------------" \
     "--------\n"
 
 #define RUN_TESTS(TESTS_GROUP_NAME, ...)                                       \
-    int TESTS_GROUP_NAME(int argc, char* argv[])                               \
+    uintptr_t TESTS_GROUP_NAME(void)                                           \
     {                                                                          \
-        (void)argc;                                                            \
-        (void)argv;                                                            \
-        unsigned int failed_testcases = 0;                                     \
+        uintptr_t failed_testcases = 0;                                        \
         void (*tests_array[])(TestCaseInfo*) = {__VA_ARGS__};                  \
-        TestCaseInfo ti = {0};                                                 \
-        for (unsigned int i = 0; i < sizeof(tests_array) / sizeof(void*); i++) \
+        TestCaseInfo ti = {                                                    \
+            .TOTAL_EXPECTEDS_ = 0, .FAILED_EXPECTEDS_ = 0, .TEST_RESULT_ = 0}; \
+        for (uintptr_t i = 0; i < sizeof(tests_array) / sizeof(void*); i++)    \
         {                                                                      \
             tests_array[i](&ti);                                               \
-            if (ti.TEST_RESULT == TEST_PASS)                                   \
+            if (ti.TEST_RESULT_ == TEST_PASS_)                                 \
             {                                                                  \
                 OUTPUT("PASSED ");                                             \
             }                                                                  \
@@ -189,15 +191,17 @@ typedef struct TestCaseInfo
                 OUTPUT("FAILED ");                                             \
                 ++failed_testcases;                                            \
             }                                                                  \
-            OUTPUT("(%d/%d)\n", ti.TOTAL_EXPECTEDS - ti.FAILED_EXPECTEDS,      \
-                   ti.TOTAL_EXPECTEDS);                                        \
-            OUTPUT(TESTS_SEPARATOR);                                           \
+            OUTPUT("(%" PRIuPTR "/%" PRIuPTR ")\n",                            \
+                   ti.TOTAL_EXPECTEDS_ - ti.FAILED_EXPECTEDS_,                 \
+                   ti.TOTAL_EXPECTEDS_);                                       \
+            OUTPUT(TESTS_SEPARATOR_);                                          \
         }                                                                      \
-        OUTPUT("Executed tests: %d (%d passed, %d failed).\n",                 \
+        OUTPUT("Executed tests: %" PRIuPTR " (%" PRIuPTR " passed, %" PRIuPTR  \
+               " failed).\n",                                                  \
                sizeof(tests_array) / sizeof(void*),                            \
                sizeof(tests_array) / sizeof(void*) - failed_testcases,         \
                failed_testcases);                                              \
         return failed_testcases;                                               \
     }
 
-#endif /* EZTEST_H */
+#endif /* EZTEST_H_ */
